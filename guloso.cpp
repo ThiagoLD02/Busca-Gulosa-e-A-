@@ -3,6 +3,7 @@
 #include <vector>
 #include <queue>
 #include <unordered_map>
+#include <algorithm>
 
 using namespace std;
 
@@ -27,6 +28,15 @@ struct dadosDaCidade
 };
 
 unordered_map<string, dadosDaCidade> mapa;
+
+struct comparar
+{
+
+    bool operator()(vizinho a, vizinho b)
+    {
+        return mapa[a.nome].distanciaEmLinhaReta > mapa[b.nome].distanciaEmLinhaReta;
+    }
+};
 
 int distanciaEntre(string origem, string destino)
 {
@@ -66,15 +76,15 @@ int guloso(string origem)
         {"Vaslui", false},
         {"Zerind", false}};
 
-    queue<string> filaDeCidades;
+    priority_queue<vizinho, vector<vizinho>, comparar> filaDeCidades;
 
-    filaDeCidades.push(origem);
+    filaDeCidades.push({origem, 0});
     unsigned int distanciaAtual = 0;
 
     cout << "Partindo de " << origem << endl;
     while (!filaDeCidades.empty())
     {
-        cidadeAtual = filaDeCidades.front();
+        cidadeAtual = filaDeCidades.top().nome;
         if (cidadeAtual == "Bucharest")
         {
             cout << "Chegamos ao destino final, com uma distancia de: " << distanciaAtual << endl
@@ -83,36 +93,21 @@ int guloso(string origem)
         }
 
         visitado[cidadeAtual] = true;
-        vector<vizinho> vizinhas = mapa[cidadeAtual].vizinhos;
-        int menor = 10000;
-        string proximaCidade;
-
-        for (vizinho cidade : vizinhas)
-        {
-            if (!visitado[cidade.nome])
-                if (mapa[cidade.nome].distanciaEmLinhaReta < menor)
-                {
-                    proximaCidade = cidade.nome;
-                    menor = mapa[cidade.nome].distanciaEmLinhaReta;
-                }
-        }
-        if (menor == 10000)
-        {
-            cout << "Nao foi possivel chegar ao destino escolhido\n";
-            return -1;
-        }
-        distanciaAtual += distanciaEntre(cidadeAtual, proximaCidade);
         filaDeCidades.pop();
-        filaDeCidades.push(proximaCidade);
-        cout << "Indo para " << proximaCidade << " a uma distancia de " << distanciaEntre(cidadeAtual, proximaCidade) << endl;
+
+        vector<vizinho> vizinhas = mapa[cidadeAtual].vizinhos;
+
+        for (auto cidade : vizinhas)
+            if (!visitado[cidade.nome])
+                filaDeCidades.push(cidade);
+
+        cout << "Indo para " << filaDeCidades.top().nome << endl;
     }
     return -1;
 }
 
 int main()
 {
-
-    vector<vizinho> teste = {{"Zerind", 75}, {"Timisoara", 118}, {"Sibiu", 140}};
 
     mapa["Arad"] = dadosDaCidade{{{"Zerind", 75}, {"Timisoara", 118}, {"Sibiu", 140}}, 366};
     mapa["Bucharest"] = dadosDaCidade{{{"Giurgiu", 90}, {"Urziceni", 85}, {"Pitesti", 101}, {"Fagaras", 211}}, 0};
