@@ -4,9 +4,11 @@
 #include <queue>
 #include <unordered_map>
 #include <algorithm>
+#include <stack>
 
 using namespace std;
 
+// Nome, distancia da cidade "pai"
 struct vizinho
 {
     string nome;
@@ -27,8 +29,14 @@ struct dadosDaCidade
     int distanciaEmLinhaReta;
 };
 
+/*
+    Guarda os vizinhos e suas distancias para a cidade chave, juntamente com a distancia
+    da cidade chave em linha reta para Bucharest
+
+*/
 unordered_map<string, dadosDaCidade> mapa;
 
+// Funcao para comparar qual cidade esta mais perto em linha reta
 struct comparar
 {
 
@@ -38,6 +46,7 @@ struct comparar
     }
 };
 
+// Calcula a distancia entre duas cidades vizinhas, caso nao sejam retorna -1
 int distanciaEntre(string origem, string destino)
 {
 
@@ -54,55 +63,91 @@ int guloso(string origem)
 {
 
     string cidadeAtual;
-    unordered_map<string, bool> visitado = {
-        {"Arad", false},
-        {"Bucharest", false},
-        {"Craiova", false},
-        {"Drobeta", false},
-        {"Eforie", false},
-        {"Fagaras", false},
-        {"Giurgiu", false},
-        {"Hirsova", false},
-        {"Iasi", false},
-        {"Lugoj", false},
-        {"Mehadia", false},
-        {"Neamt", false},
-        {"Oradea", false},
-        {"Pitesti", false},
-        {"Rimnicu_Vilcea", false},
-        {"Sibiu", false},
-        {"Timisoara", false},
-        {"Urziceni", false},
-        {"Vaslui", false},
-        {"Zerind", false}};
+    // Cidades que foram visitadas e que estao na fila para serem visitadas
+    // Mantem-se a lista de quais estao na fila para nao ser adicionada novamente
+    unordered_map<string, bool> visitado, naFila = {
+                                              {"Arad", false},
+                                              {"Bucharest", false},
+                                              {"Craiova", false},
+                                              {"Drobeta", false},
+                                              {"Eforie", false},
+                                              {"Fagaras", false},
+                                              {"Giurgiu", false},
+                                              {"Hirsova", false},
+                                              {"Iasi", false},
+                                              {"Lugoj", false},
+                                              {"Mehadia", false},
+                                              {"Neamt", false},
+                                              {"Oradea", false},
+                                              {"Pitesti", false},
+                                              {"Rimnicu_Vilcea", false},
+                                              {"Sibiu", false},
+                                              {"Timisoara", false},
+                                              {"Urziceni", false},
+                                              {"Vaslui", false},
+                                              {"Zerind", false}};
 
+    // Fila com prioridade na distancia em linha reta ate Bucharest
     priority_queue<vizinho, vector<vizinho>, comparar> filaDeCidades;
 
     filaDeCidades.push({origem, 0});
     unsigned int distanciaAtual = 0;
 
-    cout << "Partindo de " << origem << endl;
+    // Para salvar o caminho de volta do destino final e saber o melhor caminho
+    unordered_map<string, string> deOndeEuVim;
+    cout << "Partindo de " << origem;
     while (!filaDeCidades.empty())
     {
         cidadeAtual = filaDeCidades.top().nome;
         if (cidadeAtual == "Bucharest")
         {
-            cout << "Chegamos ao destino final, com uma distancia de: " << distanciaAtual << endl
+            string cidade = cidadeAtual;
+            stack<string> ordemDasCidades;
+            ordemDasCidades.push(cidadeAtual);
+            string anterior = cidadeAtual;
+
+            // Faz o caminho contrario, do destino para origem
+            while (cidade != origem)
+            {
+                cidade = deOndeEuVim[cidade];
+                distanciaAtual += distanciaEntre(anterior, cidade);
+                anterior = cidade;
+                ordemDasCidades.push(cidade);
+            }
+
+            const int tam = ordemDasCidades.size();
+
+            cout << " o melhor caminho encontrado foi:\n";
+            for (int i = 0; i < tam - 1; i++)
+            {
+                cout << ordemDasCidades.top() << " => ";
+                ordemDasCidades.pop();
+            }
+            cout << ordemDasCidades.top();
+
+            cout << "\nChegamos ao destino final, com uma distancia de: " << distanciaAtual << endl
                  << endl;
             return distanciaAtual;
         }
 
         visitado[cidadeAtual] = true;
+        naFila[cidadeAtual] = false;
         filaDeCidades.pop();
 
         vector<vizinho> vizinhas = mapa[cidadeAtual].vizinhos;
 
+        // Adiciona na fila de cidades a serem visitadas todas as que
+        // ainda nao foram visitadas e que nao foram inseridas na fila por outra cidade
         for (auto cidade : vizinhas)
             if (!visitado[cidade.nome])
-                filaDeCidades.push(cidade);
-
-        cout << "Indo para " << filaDeCidades.top().nome << endl;
+                if (!naFila[cidade.nome])
+                {
+                    filaDeCidades.push(cidade);
+                    naFila[cidade.nome] = true;
+                    deOndeEuVim[cidade.nome] = cidadeAtual;
+                }
     }
+    // Nao foi possivel encontrar um caminho
     return -1;
 }
 
@@ -123,7 +168,8 @@ int main()
     mapa["Neamt"] = dadosDaCidade{{{"Iasi", 87}}, 234};
     mapa["Oradea"] = dadosDaCidade{{{"Zerind", 71}, {"Sibiu", 151}}, 380};
     mapa["Pitesti"] = dadosDaCidade{{{"Craiova", 138}, {"Rimnicu_Vilcea", 97}, {"Bucharest", 101}}, 100};
-    mapa["Rimnicu_Vilcea"] = dadosDaCidade{{{"Craiova", 146}, {"Drobeta", 80}, {"Pitesti", 97}}, 193};
+    // mapa["Pitesti"] = dadosDaCidade{{{"Craiova", 138}, {"Rimnicu_Vilcea", 97}, 100};
+    mapa["Rimnicu_Vilcea"] = dadosDaCidade{{{"Craiova", 146}, {"Sibiu", 80}, {"Pitesti", 97}}, 193};
     mapa["Sibiu"] = dadosDaCidade{{{"Arad", 140}, {"Oradea", 151}, {"Fagaras", 99}, {"Rimnicu_Vilcea", 80}}, 253};
     mapa["Timisoara"] = dadosDaCidade{{{"Arad", 118}, {"Lugoj", 111}}, 329};
     mapa["Urziceni"] = dadosDaCidade{{{"Bucharest", 85}, {"Hirsova", 98}, {"Vaslui", 142}}, 80};
@@ -131,6 +177,7 @@ int main()
     mapa["Zerind"] = dadosDaCidade{{{"Arad", 75}, {"Oradea", 71}}, 374};
 
     string origem;
+    // Podem ser utilizados varios casos de teste
     while (cin >> origem)
         guloso(origem);
 }
